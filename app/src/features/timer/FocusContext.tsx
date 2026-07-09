@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { ReactNode } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
+import { nowMin } from '../../lib/time'
 import type { FocusSession, TimeBoxWithTask } from '../../types'
 
 export interface ActiveFocus {
@@ -82,9 +83,14 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     async (timeBox: TimeBoxWithTask) => {
       // 기존 세션이 있으면 먼저 종료
       if (active) {
-        await stopSession(active.session)
-        setVersion((v) => v + 1)
+        await stopSession(active.session, active.timeBox)
       }
+      // 타임박스 시작 시각을 실제 몰입 시작 시각으로 보정 (계획보다 이르든 늦든)
+      const startMin = nowMin()
+      const endMin = Math.max(timeBox.end_min, startMin + 1)
+      await supabase.from('time_boxes').update({ start_min: startMin, end_min: endMin }).eq('id', timeBox.id)
+      const syncedBox = { ...timeBox, start_min: startMin, end_min: endMin }
+
       const { data, error } = await supabase
         .from('focus_sessions')
         .insert({
@@ -99,7 +105,8 @@ export function FocusProvider({ children }: { children: ReactNode }) {
         .from('tasks')
         .update({ last_used_at: new Date().toISOString() })
         .eq('id', timeBox.task_id)
-      setActive({ session: data as FocusSession, timeBox })
+      setActive({ session: data as FocusSession, timeBox: syncedBox })
+      setVersion((v) => v + 1)
     },
     [active],
   )
@@ -136,7 +143,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
 
   const stop = useCallback(async () => {
     if (!active) return
-    await stopSession(active.session)
+    await stopSession(active.session, active.timeBox)
     setActive(null)
     setVersion((v) => v + 1)
   }, [active])
@@ -148,7 +155,7 @@ export function FocusProvider({ children }: { children: ReactNode }) {
   )
 }
 
-async function stopSession(session: FocusSession) {
+async function stopSession(session: FocusSession, timeBox: TimeBoxWithTask) {
   await supabase
     .from('focus_sessions')
     .update({
@@ -158,6 +165,9 @@ async function stopSession(session: FocusSession) {
       ended_at: new Date().toISOString(),
     })
     .eq('id', session.id)
+  // 타임박스 종료 시각을 실제 몰입 종료 시각으로 보정 (계획보다 이르든 늦든)
+  const endMin = Math.max(nowMin(), timeBox.start_min + 1)
+  await supabase.from('time_boxes').update({ end_min: endMin }).eq('id', timeBox.id)
 }
 
 export function useFocus(): FocusValue {

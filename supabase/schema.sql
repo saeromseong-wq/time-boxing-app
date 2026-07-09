@@ -19,7 +19,7 @@ create table if not exists public.time_boxes (
   task_id uuid not null references public.tasks(id) on delete cascade,
   date date not null,
   start_min int not null check (start_min between 0 and 1439),
-  end_min int not null check (end_min between 1 and 1440),
+  end_min int not null check (end_min between 1 and 2880), -- 2880 = 자정을 넘겨 다음날 24:00까지 표현
   created_at timestamptz not null default now(),
   check (end_min > start_min)
 );
@@ -50,3 +50,8 @@ create policy "own time_boxes" on public.time_boxes
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own focus_sessions" on public.focus_sessions
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 마이그레이션: 자정 넘김(다음날까지) 타임박스 입력 지원 (2026-07-10)
+-- 테이블이 이미 있는 환경(create table if not exists가 스킵됨)에서도 반영되도록 별도 적용.
+alter table public.time_boxes drop constraint if exists time_boxes_end_min_check;
+alter table public.time_boxes add constraint time_boxes_end_min_check check (end_min between 1 and 2880);

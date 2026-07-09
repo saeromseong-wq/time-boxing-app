@@ -17,6 +17,13 @@ export function minToLabel(min: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
+/** 타임박스 종료 분(0~2880) → 라벨. 1440(당일 24:00) 이후는 "다음날 HH:MM" */
+export function endMinLabel(min: number): string {
+  if (min <= 1440) return min === 1440 ? '24:00' : minToLabel(min)
+  const rel = min - 1440
+  return `다음날 ${rel === 1440 ? '24:00' : minToLabel(rel)}`
+}
+
 /** 현재 시각의 자정 기준 분 */
 export function nowMin(): number {
   const d = new Date()

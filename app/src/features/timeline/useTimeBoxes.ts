@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Task, TimeBoxWithTask } from '../../types'
 
-export function useTimeBoxes(date: string, refreshKey = 0) {
+/** startStr~endStr(둘 다 포함, YYYY-MM-DD) 범위의 타임박스. 일간 뷰는 startStr === endStr로 사용 */
+export function useTimeBoxes(startStr: string, endStr: string, refreshKey = 0) {
   const [boxes, setBoxes] = useState<TimeBoxWithTask[]>([])
   /** 타임박스별 완료 세션의 몰입 초 합계 */
   const [focusedByBox, setFocusedByBox] = useState<Record<string, number>>({})
@@ -12,7 +13,8 @@ export function useTimeBoxes(date: string, refreshKey = 0) {
     const { data } = await supabase
       .from('time_boxes')
       .select('*, task:tasks(*)')
-      .eq('date', date)
+      .gte('date', startStr)
+      .lte('date', endStr)
       .order('start_min')
     const list = (data as TimeBoxWithTask[]) ?? []
     setBoxes(list)
@@ -32,7 +34,7 @@ export function useTimeBoxes(date: string, refreshKey = 0) {
       setFocusedByBox({})
     }
     setLoading(false)
-  }, [date])
+  }, [startStr, endStr])
 
   useEffect(() => {
     setLoading(true)
@@ -40,7 +42,7 @@ export function useTimeBoxes(date: string, refreshKey = 0) {
   }, [refresh, refreshKey])
 
   const create = useCallback(
-    async (task: Task, startMin: number, endMin: number): Promise<TimeBoxWithTask> => {
+    async (task: Task, date: string, startMin: number, endMin: number): Promise<TimeBoxWithTask> => {
       const { data, error } = await supabase
         .from('time_boxes')
         .insert({ task_id: task.id, date, start_min: startMin, end_min: endMin })
@@ -50,7 +52,7 @@ export function useTimeBoxes(date: string, refreshKey = 0) {
       await refresh()
       return { ...data, task } as TimeBoxWithTask
     },
-    [date, refresh],
+    [refresh],
   )
 
   const updateTimes = useCallback(

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Modal from '../../components/Modal'
-import { formatDuration, minToLabel } from '../../lib/time'
+import { endMinLabel, formatDuration, minToLabel } from '../../lib/time'
 import { CATEGORY_LABEL } from '../../types'
 import type { TimeBoxWithTask } from '../../types'
 
@@ -15,6 +15,7 @@ interface Props {
 }
 
 const START_OPTIONS = Array.from({ length: 96 }, (_, i) => i * 15) // 00:00–23:45
+const END_OPTIONS = Array.from({ length: 192 }, (_, i) => (i + 1) * 15) // 00:15–다음날 24:00
 
 export default function TimeBoxModal({
   box,
@@ -48,7 +49,7 @@ export default function TimeBoxModal({
           onChange={(e) => {
             const s = Number(e.target.value)
             setStart(s)
-            if (end <= s) setEnd(Math.min(s + 15, 1440))
+            if (end <= s) setEnd(Math.min(s + 15, 2880))
           }}
           className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 dark:border-neutral-700 dark:bg-neutral-900"
         >
@@ -62,8 +63,8 @@ export default function TimeBoxModal({
           onChange={(e) => setEnd(Number(e.target.value))}
           className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 dark:border-neutral-700 dark:bg-neutral-900"
         >
-          {START_OPTIONS.filter((m) => m > start).concat(1440).map((m) => (
-            <option key={m} value={m}>{minToLabel(m === 1440 ? 1439 : m).replace('23:59', '24:00')}</option>
+          {END_OPTIONS.filter((m) => m > start).map((m) => (
+            <option key={m} value={m}>{endMinLabel(m)}</option>
           ))}
         </select>
         <span className="text-xs text-neutral-400">({end - start}분)</span>
