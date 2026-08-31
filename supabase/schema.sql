@@ -55,3 +55,19 @@ create policy "own focus_sessions" on public.focus_sessions
 -- 테이블이 이미 있는 환경(create table if not exists가 스킵됨)에서도 반영되도록 별도 적용.
 alter table public.time_boxes drop constraint if exists time_boxes_end_min_check;
 alter table public.time_boxes add constraint time_boxes_end_min_check check (end_min between 1 and 2880);
+
+-- 마이그레이션: 주간 몰입 목표 (2026-08-31)
+-- 특정 주에 명시적으로 설정된 값이 없으면, 그 주 이전에 가장 최근에 설정된 값을 그대로 적용한다
+-- (목표를 바꾸면 그 시점 이후 주부터만 새 값이 적용되고, 과거 주의 목표는 유지됨).
+create table if not exists public.weekly_goals (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  week_start date not null, -- 해당 주의 월요일
+  target_minutes int not null check (target_minutes > 0),
+  created_at timestamptz not null default now(),
+  unique (user_id, week_start)
+);
+create index if not exists idx_weekly_goals_user_week on public.weekly_goals (user_id, week_start);
+alter table public.weekly_goals enable row level security;
+create policy "own weekly_goals" on public.weekly_goals
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

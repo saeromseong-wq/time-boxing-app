@@ -41,6 +41,13 @@ export interface TimeBoxWithTask extends TimeBox {
   task: Task
 }
 
+export interface WeeklyGoal {
+  id: string
+  week_start: string // YYYY-MM-DD (월요일)
+  target_minutes: number
+  created_at: string
+}
+
 export type SessionState = 'running' | 'paused' | 'done'
 
 export interface FocusSession {
