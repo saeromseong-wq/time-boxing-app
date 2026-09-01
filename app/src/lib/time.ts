@@ -34,6 +34,36 @@ export function snapTo(min: number, step: number): number {
   return Math.round(min / step) * step
 }
 
+/** "12:30", "1230", "930", "9" 같은 자유 입력 문자열 → 자정 기준 분. "다음날" 접두사는 +1440. 파싱 실패 시 null */
+export function parseTimeInput(text: string): number | null {
+  let rest = text.trim()
+  let overnight = false
+  if (rest.startsWith('다음날')) {
+    overnight = true
+    rest = rest.slice(3).trim()
+  }
+  let h: number
+  let m: number
+  const colonMatch = rest.match(/^(\d{1,2}):(\d{1,2})$/)
+  if (colonMatch) {
+    h = Number(colonMatch[1])
+    m = Number(colonMatch[2])
+  } else if (/^\d{1,4}$/.test(rest)) {
+    if (rest.length <= 2) {
+      h = Number(rest)
+      m = 0
+    } else {
+      m = Number(rest.slice(-2))
+      h = Number(rest.slice(0, -2))
+    }
+  } else {
+    return null
+  }
+  if (h === 24 && m === 0) return overnight ? 2880 : 1440
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null
+  return h * 60 + m + (overnight ? 1440 : 0)
+}
+
 /** 초 → "1시간 23분" / "45분" / "30초" */
 export function formatDuration(seconds: number): string {
   const s = Math.max(0, Math.round(seconds))

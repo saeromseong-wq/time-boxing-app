@@ -139,11 +139,14 @@ export default function DayColumn({
         const end = Math.min(rawEnd, DAY_MIN)
         const focused = focusedByBox[b.id] ?? 0
         const isActive = b.id === activeBoxId
-        const compact = end - start < 40
+        const durationMin = end - start
+        const compact = durationMin < 40
+        const tiny = durationMin < 20
+        const timeText = `${minToLabel(start)}–${isOvernight ? `↘ ${endMinLabel(b.end_min)}` : minToLabel(end)}${focused > 0 ? ` · 몰입 ${formatDuration(focused)}` : ''}`
         return (
           <div
             key={b.id}
-            className={`absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-2 ${compact ? 'py-0' : 'py-1'} text-white shadow-sm ${isOvernight ? 'cursor-pointer' : 'cursor-grab'} ${isDragging ? 'z-30 opacity-90 shadow-lg' : 'z-10'}`}
+            className={`absolute inset-x-1 overflow-hidden rounded-lg border-l-4 px-2 ${tiny ? 'flex items-center py-0' : compact ? 'py-0' : 'py-1'} text-white shadow-sm ${isOvernight ? 'cursor-pointer' : 'cursor-grab'} ${isDragging ? 'z-30 opacity-90 shadow-lg' : 'z-10'}`}
             style={{
               top: (start / 60) * HOUR_PX + 1,
               height: ((end - start) / 60) * HOUR_PX - 2,
@@ -168,20 +171,27 @@ export default function DayColumn({
               })
             }}
           >
-            <div className="flex items-center gap-1.5">
-              {isActive && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />}
-              <p className="truncate text-xs font-bold leading-4">{b.task.name}</p>
-            </div>
-            {!compact && (
-              <p className="text-[10px] leading-4 opacity-80">
-                {minToLabel(start)}–{isOvernight ? `↘ ${endMinLabel(b.end_min)}` : minToLabel(end)}
-                {focused > 0 && ` · 몰입 ${formatDuration(focused)}`}
-              </p>
+            {tiny ? (
+              <div className="flex min-w-0 items-center gap-1 leading-none">
+                {isActive && <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-white" />}
+                <span className="min-w-0 flex-1 truncate text-[9px] font-bold">{b.task.name}</span>
+                <span className="shrink-0 whitespace-nowrap text-[9px] opacity-80">{timeText}</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5">
+                  {isActive && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />}
+                  <p className={`truncate font-bold ${compact ? 'text-[10px] leading-3' : 'text-xs leading-4'}`}>{b.task.name}</p>
+                </div>
+                <p className={`truncate opacity-80 ${compact ? 'text-[9px] leading-3' : 'text-[10px] leading-4'}`}>
+                  {timeText}
+                </p>
+              </>
             )}
-            {/* 리사이즈 핸들 (자정 넘긴 박스는 지원하지 않음) */}
+            {/* 리사이즈 핸들 (자정 넘긴 박스는 지원하지 않음). 박스가 낮을 땐 선택 영역을 남기려고 더 얇게 잡는다 */}
             {!isOvernight && (
               <div
-                className="absolute inset-x-0 bottom-0 h-2.5 cursor-ns-resize"
+                className={`absolute inset-x-0 bottom-0 cursor-ns-resize ${tiny ? 'h-1' : 'h-2.5'}`}
                 onPointerDown={(e) => {
                   if (e.button !== 0) return
                   e.stopPropagation()
