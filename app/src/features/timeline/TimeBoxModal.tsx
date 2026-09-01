@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from '../../components/Modal'
-import { endMinLabel, formatDuration, minToLabel } from '../../lib/time'
+import { endMinLabel, formatDuration, minToLabel, parseTimeInput, snapTo } from '../../lib/time'
 import { CATEGORY_LABEL } from '../../types'
 import type { TimeBoxWithTask } from '../../types'
 
@@ -14,8 +14,56 @@ interface Props {
   onClose: () => void
 }
 
-const START_OPTIONS = Array.from({ length: 96 }, (_, i) => i * 15) // 00:00–23:45
-const END_OPTIONS = Array.from({ length: 192 }, (_, i) => (i + 1) * 15) // 00:15–다음날 24:00
+const START_OPTIONS = Array.from({ length: 288 }, (_, i) => i * 5) // 00:00–23:55
+const END_OPTIONS = Array.from({ length: 576 }, (_, i) => (i + 1) * 5) // 00:05–다음날 24:00
+
+interface TimeFieldProps {
+  id: string
+  value: number
+  label: (min: number) => string
+  options: number[]
+  onCommit: (min: number) => void
+}
+
+/** 드롭다운으로 5분 단위 선택 + 필드를 클릭해 숫자로 직접 타이핑 모두 지원하는 시간 입력 */
+function TimeField({ id, value, label, options, onCommit }: TimeFieldProps) {
+  const [text, setText] = useState(label(value))
+
+  useEffect(() => {
+    setText(label(value))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
+
+  function commit() {
+    const parsed = parseTimeInput(text)
+    if (parsed === null) {
+      setText(label(value))
+      return
+    }
+    onCommit(snapTo(parsed, 5))
+  }
+
+  return (
+    <>
+      <input
+        list={id}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onFocus={(e) => e.target.select()}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+        }}
+        className="w-24 rounded-lg border border-neutral-300 bg-white px-2 py-1.5 dark:border-neutral-700 dark:bg-neutral-900"
+      />
+      <datalist id={id}>
+        {options.map((m) => (
+          <option key={m} value={label(m)} />
+        ))}
+      </datalist>
+    </>
+  )
+}
 
 export default function TimeBoxModal({
   box,
@@ -44,29 +92,27 @@ export default function TimeBoxModal({
       </div>
 
       <div className="mb-5 flex items-center gap-2 text-sm">
-        <select
+        <TimeField
+          id="timebox-start"
           value={start}
-          onChange={(e) => {
-            const s = Number(e.target.value)
+          label={minToLabel}
+          options={START_OPTIONS}
+          onCommit={(s) => {
             setStart(s)
-            if (end <= s) setEnd(Math.min(s + 15, 2880))
+            if (end <= s) setEnd(Math.min(s + 5, 2880))
           }}
-          className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 dark:border-neutral-700 dark:bg-neutral-900"
-        >
-          {START_OPTIONS.map((m) => (
-            <option key={m} value={m}>{minToLabel(m)}</option>
-          ))}
-        </select>
+        />
         <span className="text-neutral-400">→</span>
-        <select
+        <TimeField
+          id="timebox-end"
           value={end}
-          onChange={(e) => setEnd(Number(e.target.value))}
-          className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 dark:border-neutral-700 dark:bg-neutral-900"
-        >
-          {END_OPTIONS.filter((m) => m > start).map((m) => (
-            <option key={m} value={m}>{endMinLabel(m)}</option>
-          ))}
-        </select>
+          label={endMinLabel}
+          options={END_OPTIONS.filter((m) => m > start)}
+          onCommit={(e) => {
+            const rolled = e <= start ? e + 1440 : e
+            setEnd(Math.max(rolled, start + 5))
+          }}
+        />
         <span className="text-xs text-neutral-400">({end - start}분)</span>
       </div>
 
