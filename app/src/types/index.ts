@@ -26,6 +26,9 @@ export interface Task {
   archived: boolean
   last_used_at: string | null
   created_at: string
+  sort_order: number
+  /** null이면 '바로 시작'에 노출 안 함, 값이 있으면 그 순서대로 노출 */
+  quick_start_order: number | null
 }
 
 export interface TimeBox {

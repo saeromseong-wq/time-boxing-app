@@ -71,3 +71,20 @@ create index if not exists idx_weekly_goals_user_week on public.weekly_goals (us
 alter table public.weekly_goals enable row level security;
 create policy "own weekly_goals" on public.weekly_goals
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 마이그레이션: Task 수동 정렬 + '바로 시작' 노출 선택 (2026-09-08)
+-- sort_order: 낮을수록 위 (Task 라이브러리 목록 수동 정렬)
+-- quick_start_order: null이면 '바로 시작'에 노출 안 함, 값이 있으면 그 순서대로 노출
+alter table public.tasks add column if not exists sort_order int not null default 0;
+alter table public.tasks add column if not exists quick_start_order int;
+
+-- 기존 행에 한해, 현재 화면에 보이던 순서(최근 사용순)를 그대로 sort_order로 백필
+with ranked as (
+  select id, row_number() over (
+    partition by user_id order by last_used_at desc nulls last, created_at desc
+  ) as rn
+  from public.tasks
+)
+update public.tasks t set sort_order = ranked.rn
+from ranked
+where t.id = ranked.id and t.sort_order = 0;

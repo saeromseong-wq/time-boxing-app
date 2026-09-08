@@ -41,10 +41,15 @@ export default function TodayPage() {
   const [pendingRange, setPendingRange] = useState<{ date: string; start: number; end: number | null } | null>(null)
   const [selected, setSelected] = useState<TimeBoxWithTask | null>(null)
 
+  /** 플로팅 버튼: 몰입할 태스크 선택 모달 열림 여부 */
+  const [fabPicking, setFabPicking] = useState(false)
+
   const isCurrentPeriod =
     viewMode === 'day' ? date === todayStr() : weekStartStr <= todayStr() && todayStr() <= weekEndStr
   const showQuick = isCurrentPeriod
-  const quickTasks = tasks.slice(0, 6)
+  const quickTasks = tasks
+    .filter((t) => t.quick_start_order != null)
+    .sort((a, b) => (a.quick_start_order ?? 0) - (b.quick_start_order ?? 0))
 
   async function startFocus(box: TimeBoxWithTask) {
     await focus.start(box)
@@ -189,6 +194,28 @@ export default function TodayPage() {
             setSelected(null)
           }}
           onClose={() => setSelected(null)}
+        />
+      )}
+
+      {/* 플로팅 버튼 — 탭 한 번으로 몰입할 태스크 선택으로 이동 */}
+      <button
+        onClick={() => setFabPicking(true)}
+        className="fixed bottom-6 right-6 z-40 flex h-14 items-center gap-2 rounded-full bg-indigo-600 pl-5 pr-6 text-sm font-bold text-white shadow-lg hover:bg-indigo-500"
+      >
+        <span className="text-lg leading-none">▶</span>
+        몰입 시작
+      </button>
+
+      {fabPicking && (
+        <TaskPicker
+          title="몰입할 태스크"
+          tasks={tasks}
+          onPick={async (task) => {
+            setFabPicking(false)
+            await quickStart(task)
+          }}
+          onCreate={createTask}
+          onClose={() => setFabPicking(false)}
         />
       )}
     </div>
