@@ -31,6 +31,13 @@ export interface Task {
   quick_start_order: number | null
 }
 
+export interface GoalItem {
+  text: string
+  done: boolean
+}
+
+export const MAX_GOALS = 10
+
 export interface TimeBox {
   id: string
   task_id: string
@@ -38,8 +45,7 @@ export interface TimeBox {
   start_min: number // 자정 기준 분
   end_min: number
   created_at: string
-  goal: string | null
-  note: string | null
+  goals: GoalItem[]
 }
 
 export interface TimeBoxWithTask extends TimeBox {

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useBlocker, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useFocus } from './FocusContext'
 import { formatClock, formatDuration } from '../../lib/time'
-import Modal from '../../components/Modal'
+import GoalChecklist from '../timeline/GoalChecklist'
+import type { GoalItem } from '../../types'
 
 /** 비주얼 타이머: 남은 시간만큼 색이 찬 파이가 줄어듦 */
 function TimerPie({ fraction, color, overtime }: { fraction: number; color: string; overtime: boolean }) {
@@ -46,33 +47,18 @@ interface Summary {
 }
 
 export default function TimerPage() {
-  const { active, loading, focusedLive, pause, resume, stop, updateGoalNote } = useFocus()
+  const { active, loading, focusedLive, pause, resume, stop, updateGoals } = useFocus()
   const navigate = useNavigate()
   const [summary, setSummary] = useState<Summary | null>(null)
-  const [goal, setGoal] = useState('')
-  const [note, setNote] = useState('')
-  const [savedGoal, setSavedGoal] = useState('')
-  const [savedNote, setSavedNote] = useState('')
+  const [goals, setGoals] = useState<GoalItem[]>([])
 
   useEffect(() => {
-    const g = active?.timeBox.goal ?? ''
-    const n = active?.timeBox.note ?? ''
-    setGoal(g)
-    setNote(n)
-    setSavedGoal(g)
-    setSavedNote(n)
+    setGoals(active?.timeBox.goals ?? [])
   }, [active?.timeBox.id])
 
-  const dirty = active != null && (goal !== savedGoal || note !== savedNote)
-  const blocker = useBlocker(dirty)
-
-  async function saveGoalNote() {
-    if (!active) return
-    const g = goal.trim() || null
-    const n = note.trim() || null
-    await updateGoalNote({ goal: g, note: n })
-    setSavedGoal(g ?? '')
-    setSavedNote(n ?? '')
+  function changeGoals(next: GoalItem[]) {
+    setGoals(next)
+    updateGoals(next)
   }
 
   if (summary) {
@@ -185,54 +171,9 @@ export default function TimerPage() {
         </button>
       </div>
 
-      <div className="mt-6 w-full space-y-3">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-neutral-400">목표 (선택)</label>
-          <input
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            placeholder="이번 몰입에서 이루고 싶은 것"
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-neutral-400">한 일 (선택)</label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            placeholder="실제로 한 일을 간단히 기록"
-            className="w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-          />
-        </div>
-        <button
-          onClick={saveGoalNote}
-          disabled={!dirty}
-          className="w-full rounded-lg bg-neutral-900 py-2 text-sm font-semibold text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
-        >
-          저장
-        </button>
+      <div className="mt-6 w-full">
+        <GoalChecklist goals={goals} onChange={changeGoals} />
       </div>
-
-      {blocker.state === 'blocked' && (
-        <Modal title="저장되지 않음" onClose={() => blocker.reset()}>
-          <p className="mb-4 text-sm text-neutral-500">입력한 내용이 저장되지 않았어요. 그래도 나가시겠어요?</p>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => blocker.reset()}
-              className="rounded-lg px-4 py-2 text-sm font-semibold hover:bg-neutral-100 dark:hover:bg-neutral-800"
-            >
-              취소
-            </button>
-            <button
-              onClick={() => blocker.proceed()}
-              className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400"
-            >
-              나가기
-            </button>
-          </div>
-        </Modal>
-      )}
     </div>
   )
 }

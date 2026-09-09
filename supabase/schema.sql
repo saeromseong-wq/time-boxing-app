@@ -92,3 +92,11 @@ where t.id = ranked.id and t.sort_order = 0;
 -- 마이그레이션: 타임박스별 목표/한 일 선택 입력 (2026-09-09)
 alter table public.time_boxes add column if not exists goal text;
 alter table public.time_boxes add column if not exists note text;
+
+-- 마이그레이션: 목표를 체크리스트로 변경, 한 일은 제거 (2026-09-09)
+-- goal(단일 텍스트) 대신 goals({text, done}[], 최대 10개, 클라이언트에서 제한) 사용.
+-- 목표 체크리스트를 체크해나가는 것으로 한 일 기록을 대신하기로 해서 note는 제거.
+-- 기존에 입력해둔 목표/한 일 텍스트는 사라진다 (아직 테스트 데이터뿐이라 마이그레이션 없이 교체).
+alter table public.time_boxes drop column if exists goal;
+alter table public.time_boxes drop column if exists note;
+alter table public.time_boxes add column if not exists goals jsonb not null default '[]'::jsonb;

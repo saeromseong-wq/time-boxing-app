@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { nowMin } from '../../lib/time'
-import type { FocusSession, TimeBox, TimeBoxWithTask } from '../../types'
+import type { FocusSession, GoalItem, TimeBoxWithTask } from '../../types'
 
 export interface ActiveFocus {
   session: FocusSession
@@ -19,7 +19,7 @@ interface FocusValue {
   pause: () => Promise<void>
   resume: () => Promise<void>
   stop: () => Promise<void>
-  updateGoalNote: (patch: Partial<Pick<TimeBox, 'goal' | 'note'>>) => Promise<void>
+  updateGoals: (goals: GoalItem[]) => Promise<void>
   /** 세션이 종료될 때마다 증가 — 목록 갱신 트리거용 */
   version: number
 }
@@ -149,20 +149,18 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     setVersion((v) => v + 1)
   }, [active])
 
-  const updateGoalNote = useCallback(
-    async (patch: Partial<Pick<TimeBox, 'goal' | 'note'>>) => {
+  const updateGoals = useCallback(
+    async (goals: GoalItem[]) => {
       if (!active) return
-      const { error } = await supabase.from('time_boxes').update(patch).eq('id', active.timeBox.id)
+      const { error } = await supabase.from('time_boxes').update({ goals }).eq('id', active.timeBox.id)
       if (error) throw error
-      setActive({ ...active, timeBox: { ...active.timeBox, ...patch } })
+      setActive({ ...active, timeBox: { ...active.timeBox, goals } })
     },
     [active],
   )
 
   return (
-    <FocusContext.Provider
-      value={{ active, loading, focusedLive, start, pause, resume, stop, updateGoalNote, version }}
-    >
+    <FocusContext.Provider value={{ active, loading, focusedLive, start, pause, resume, stop, updateGoals, version }}>
       {children}
     </FocusContext.Provider>
   )

@@ -189,6 +189,7 @@ export default function TodayPage() {
             update(selected.id, patch)
             setSelected(null)
           }}
+          onGoalsChange={(goals) => update(selected.id, { goals })}
           onDelete={async () => {
             await remove(selected.id)
             setSelected(null)
