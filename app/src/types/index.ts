@@ -38,6 +38,8 @@ export interface TimeBox {
   start_min: number // 자정 기준 분
   end_min: number
   created_at: string
+  goal: string | null
+  note: string | null
 }
 
 export interface TimeBoxWithTask extends TimeBox {

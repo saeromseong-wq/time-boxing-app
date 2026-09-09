@@ -1,14 +1,11 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { AuthProvider, useAuth } from './features/auth/AuthContext'
+import { Outlet } from 'react-router-dom'
+import { useAuth } from './features/auth/AuthContext'
 import { FocusProvider } from './features/timer/FocusContext'
 import LoginPage from './features/auth/LoginPage'
-import Layout from './components/Layout'
-import TodayPage from './features/timeline/TodayPage'
-import TimerPage from './features/timer/TimerPage'
-import StatsPage from './features/stats/StatsPage'
-import TasksPage from './features/tasks/TasksPage'
 
-function Gate() {
+/** 라우터 루트 요소 — 인증 상태를 확인한 뒤 하위 라우트를 렌더링한다.
+ * useBlocker(페이지 이탈 확인)가 데이터 라우터를 요구해서 createBrowserRouter로 구성했다. */
+export default function Gate() {
   const { session, loading } = useAuth()
   if (loading) {
     return <div className="mt-32 text-center text-sm text-neutral-400">불러오는 중…</div>
@@ -16,23 +13,7 @@ function Gate() {
   if (!session) return <LoginPage />
   return (
     <FocusProvider>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<TodayPage />} />
-          <Route path="timer" element={<TimerPage />} />
-          <Route path="stats" element={<StatsPage />} />
-          <Route path="tasks" element={<TasksPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+      <Outlet />
     </FocusProvider>
-  )
-}
-
-export default function App() {
-  return (
-    <AuthProvider>
-      <Gate />
-    </AuthProvider>
   )
 }

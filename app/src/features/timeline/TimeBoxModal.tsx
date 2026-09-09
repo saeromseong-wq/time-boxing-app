@@ -3,14 +3,14 @@ import { createPortal } from 'react-dom'
 import Modal from '../../components/Modal'
 import { endMinLabel, formatDuration, minToLabel, parseTimeInput, snapTo } from '../../lib/time'
 import { CATEGORY_LABEL } from '../../types'
-import type { TimeBoxWithTask } from '../../types'
+import type { TimeBox, TimeBoxWithTask } from '../../types'
 
 interface Props {
   box: TimeBoxWithTask
   focusedSeconds: number
   isActive: boolean
   onStart: () => void
-  onSave: (startMin: number, endMin: number) => void
+  onSave: (patch: Partial<Pick<TimeBox, 'start_min' | 'end_min' | 'goal' | 'note'>>) => void
   onDelete: () => void
   onClose: () => void
 }
@@ -131,7 +131,13 @@ export default function TimeBoxModal({
 }: Props) {
   const [start, setStart] = useState(box.start_min)
   const [end, setEnd] = useState(box.end_min)
-  const changed = start !== box.start_min || end !== box.end_min
+  const [goal, setGoal] = useState(box.goal ?? '')
+  const [note, setNote] = useState(box.note ?? '')
+  const changed =
+    start !== box.start_min ||
+    end !== box.end_min ||
+    goal !== (box.goal ?? '') ||
+    note !== (box.note ?? '')
 
   return (
     <Modal title="타임박스" onClose={onClose}>
@@ -169,6 +175,28 @@ export default function TimeBoxModal({
         <span className="text-xs text-neutral-400">({end - start}분)</span>
       </div>
 
+      <div className="mb-5 space-y-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-400">목표 (선택)</label>
+          <input
+            value={goal}
+            onChange={(e) => setGoal(e.target.value)}
+            placeholder="이 타임박스에서 이루고 싶은 것"
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-400">한 일 (선택)</label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            placeholder="실제로 한 일을 간단히 기록"
+            className="w-full resize-none rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+        </div>
+      </div>
+
       <div className="flex items-center gap-2">
         <button
           onClick={onDelete}
@@ -179,10 +207,12 @@ export default function TimeBoxModal({
         <div className="flex-1" />
         {changed && (
           <button
-            onClick={() => onSave(start, end)}
+            onClick={() =>
+              onSave({ start_min: start, end_min: end, goal: goal.trim() || null, note: note.trim() || null })
+            }
             className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
           >
-            시간 저장
+            저장
           </button>
         )}
         <button

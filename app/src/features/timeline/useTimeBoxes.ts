@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import type { Task, TimeBoxWithTask } from '../../types'
+import type { Task, TimeBox, TimeBoxWithTask } from '../../types'
 
 /** startStr~endStr(둘 다 포함, YYYY-MM-DD) 범위의 타임박스. 일간 뷰는 startStr === endStr로 사용 */
 export function useTimeBoxes(startStr: string, endStr: string, refreshKey = 0) {
@@ -70,6 +70,15 @@ export function useTimeBoxes(startStr: string, endStr: string, refreshKey = 0) {
     [refresh],
   )
 
+  const update = useCallback(
+    async (id: string, patch: Partial<Pick<TimeBox, 'start_min' | 'end_min' | 'goal' | 'note'>>) => {
+      setBoxes((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+      const { error } = await supabase.from('time_boxes').update(patch).eq('id', id)
+      if (error) await refresh()
+    },
+    [refresh],
+  )
+
   const remove = useCallback(
     async (id: string) => {
       const { error } = await supabase.from('time_boxes').delete().eq('id', id)
@@ -79,5 +88,5 @@ export function useTimeBoxes(startStr: string, endStr: string, refreshKey = 0) {
     [refresh],
   )
 
-  return { boxes, focusedByBox, loading, refresh, create, updateTimes, remove }
+  return { boxes, focusedByBox, loading, refresh, create, updateTimes, update, remove }
 }

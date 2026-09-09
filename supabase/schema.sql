@@ -88,3 +88,7 @@ with ranked as (
 update public.tasks t set sort_order = ranked.rn
 from ranked
 where t.id = ranked.id and t.sort_order = 0;
+
+-- 마이그레이션: 타임박스별 목표/한 일 선택 입력 (2026-09-09)
+alter table public.time_boxes add column if not exists goal text;
+alter table public.time_boxes add column if not exists note text;

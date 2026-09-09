@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../auth/AuthContext'
 import { nowMin } from '../../lib/time'
-import type { FocusSession, TimeBoxWithTask } from '../../types'
+import type { FocusSession, TimeBox, TimeBoxWithTask } from '../../types'
 
 export interface ActiveFocus {
   session: FocusSession
@@ -19,6 +19,7 @@ interface FocusValue {
   pause: () => Promise<void>
   resume: () => Promise<void>
   stop: () => Promise<void>
+  updateGoalNote: (patch: Partial<Pick<TimeBox, 'goal' | 'note'>>) => Promise<void>
   /** 세션이 종료될 때마다 증가 — 목록 갱신 트리거용 */
   version: number
 }
@@ -148,8 +149,20 @@ export function FocusProvider({ children }: { children: ReactNode }) {
     setVersion((v) => v + 1)
   }, [active])
 
+  const updateGoalNote = useCallback(
+    async (patch: Partial<Pick<TimeBox, 'goal' | 'note'>>) => {
+      if (!active) return
+      const { error } = await supabase.from('time_boxes').update(patch).eq('id', active.timeBox.id)
+      if (error) throw error
+      setActive({ ...active, timeBox: { ...active.timeBox, ...patch } })
+    },
+    [active],
+  )
+
   return (
-    <FocusContext.Provider value={{ active, loading, focusedLive, start, pause, resume, stop, version }}>
+    <FocusContext.Provider
+      value={{ active, loading, focusedLive, start, pause, resume, stop, updateGoalNote, version }}
+    >
       {children}
     </FocusContext.Provider>
   )

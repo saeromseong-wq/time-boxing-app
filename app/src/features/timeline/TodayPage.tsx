@@ -35,7 +35,7 @@ export default function TodayPage() {
   const weekEndStr = toDateStr(addDays(new Date(weekStartStr + 'T00:00:00'), 6))
   const rangeStart = viewMode === 'week' ? weekStartStr : date
   const rangeEnd = viewMode === 'week' ? weekEndStr : date
-  const { boxes, focusedByBox, create, updateTimes, remove } = useTimeBoxes(rangeStart, rangeEnd, focus.version)
+  const { boxes, focusedByBox, create, updateTimes, update, remove } = useTimeBoxes(rangeStart, rangeEnd, focus.version)
 
   /** 타임라인에서 지정한 범위 — TaskPicker가 열려 있는 동안 유지 */
   const [pendingRange, setPendingRange] = useState<{ date: string; start: number; end: number | null } | null>(null)
@@ -185,8 +185,8 @@ export default function TodayPage() {
             setSelected(null)
             await startFocus(selected)
           }}
-          onSave={(s, e) => {
-            updateTimes(selected.id, s, e)
+          onSave={(patch) => {
+            update(selected.id, patch)
             setSelected(null)
           }}
           onDelete={async () => {
