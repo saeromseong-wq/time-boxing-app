@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import MiniTimerBar from '../features/timer/MiniTimerBar'
+import ChangePasswordModal from '../features/auth/ChangePasswordModal'
 
 const tabs = [
   { to: '/', label: '오늘' },
@@ -10,6 +12,7 @@ const tabs = [
 
 export default function Layout() {
   const location = useLocation()
+  const [showChangePassword, setShowChangePassword] = useState(false)
   return (
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col">
       {location.pathname !== '/timer' && <MiniTimerBar />}
@@ -32,8 +35,14 @@ export default function Layout() {
           </NavLink>
         ))}
         <button
-          onClick={() => supabase.auth.signOut()}
+          onClick={() => setShowChangePassword(true)}
           className="ml-auto text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+        >
+          비밀번호 변경
+        </button>
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
         >
           로그아웃
         </button>
@@ -41,6 +50,7 @@ export default function Layout() {
       <main className="flex-1 px-4 pb-24">
         <Outlet />
       </main>
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
     </div>
   )
 }

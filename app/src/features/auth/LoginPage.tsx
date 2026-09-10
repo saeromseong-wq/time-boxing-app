@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { supabase, supabaseConfigured } from '../../lib/supabase'
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -19,10 +19,20 @@ export default function LoginPage() {
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) setError(error.message)
-      } else {
-        const { data, error } = await supabase.auth.signUp({ email, password })
+      } else if (mode === 'signup') {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/` },
+        })
         if (error) setError(error.message)
         else if (!data.session) setInfo('확인 메일을 보냈어요. 메일함에서 인증 후 로그인해주세요.')
+      } else {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        })
+        if (error) setError(error.message)
+        else setInfo('비밀번호 재설정 메일을 보냈어요. 메일함을 확인해주세요.')
       }
     } finally {
       setBusy(false)
@@ -55,15 +65,17 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-neutral-700 dark:bg-neutral-900"
         />
-        <input
-          type="password"
-          required
-          minLength={6}
-          placeholder="비밀번호 (6자 이상)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-neutral-700 dark:bg-neutral-900"
-        />
+        {mode !== 'forgot' && (
+          <input
+            type="password"
+            required
+            minLength={6}
+            placeholder="비밀번호 (6자 이상)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-neutral-700 dark:bg-neutral-900"
+          />
+        )}
         {error && <p className="text-sm text-red-600">{error}</p>}
         {info && <p className="text-sm text-emerald-600">{info}</p>}
         <button
@@ -71,15 +83,32 @@ export default function LoginPage() {
           disabled={busy}
           className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
         >
-          {mode === 'signin' ? '로그인' : '회원가입'}
+          {mode === 'signin' ? '로그인' : mode === 'signup' ? '회원가입' : '재설정 메일 보내기'}
         </button>
       </form>
-      <button
-        onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
-        className="mt-4 w-full text-center text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-      >
-        {mode === 'signin' ? '계정이 없나요? 회원가입' : '이미 계정이 있나요? 로그인'}
-      </button>
+      {mode === 'signin' && (
+        <button
+          onClick={() => setMode('forgot')}
+          className="mt-4 w-full text-center text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+        >
+          비밀번호를 잊으셨나요?
+        </button>
+      )}
+      {mode === 'forgot' ? (
+        <button
+          onClick={() => setMode('signin')}
+          className="mt-2 w-full text-center text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+        >
+          로그인으로 돌아가기
+        </button>
+      ) : (
+        <button
+          onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+          className="mt-2 w-full text-center text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+        >
+          {mode === 'signup' ? '이미 계정이 있나요? 로그인' : '계정이 없나요? 회원가입'}
+        </button>
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom'
 import './index.css'
 import Gate from './App'
 import { AuthProvider } from './features/auth/AuthContext'
+import ResetPasswordPage from './features/auth/ResetPasswordPage'
 import Layout from './components/Layout'
 import TodayPage from './features/timeline/TodayPage'
 import TimerPage from './features/timer/TimerPage'
@@ -11,6 +12,7 @@ import StatsPage from './features/stats/StatsPage'
 import TasksPage from './features/tasks/TasksPage'
 
 const router = createBrowserRouter([
+  { path: 'reset-password', element: <ResetPasswordPage /> },
   {
     element: <Gate />,
     children: [
