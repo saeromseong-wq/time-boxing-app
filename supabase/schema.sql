@@ -100,3 +100,42 @@ alter table public.time_boxes add column if not exists note text;
 alter table public.time_boxes drop column if exists goal;
 alter table public.time_boxes drop column if exists note;
 alter table public.time_boxes add column if not exists goals jsonb not null default '[]'::jsonb;
+
+-- 마이그레이션: 데일리 할 일 + 타임박스별 할 일 정규화 (2026-09-16)
+-- time_boxes.goals(jsonb) 체크리스트를 없애고, 하루 단위로 독립된 daily_todos와
+-- 타임박스별 time_box_todos 두 테이블로 분리한다.
+-- time_box_todos.daily_todo_id가 있으면 데일리 할 일을 이 타임박스에 "가져오기"한 항목으로,
+-- 완료 여부는 daily_todos.done을 그대로 따른다(양쪽 중 어디서 체크해도 같은 항목이 체크됨) —
+-- 그래서 daily_todo_id가 있는 행의 자체 done 컬럼 값은 쓰지 않는다.
+-- 기존 goals 체크리스트 데이터는 아직 테스트 데이터뿐이라 마이그레이션 없이 버린다.
+create table if not exists public.daily_todos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  date date not null,
+  text text not null,
+  done boolean not null default false,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_daily_todos_user_date on public.daily_todos (user_id, date);
+alter table public.daily_todos enable row level security;
+create policy "own daily_todos" on public.daily_todos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create table if not exists public.time_box_todos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  time_box_id uuid not null references public.time_boxes(id) on delete cascade,
+  daily_todo_id uuid references public.daily_todos(id) on delete cascade,
+  text text not null,
+  done boolean not null default false,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_time_box_todos_box on public.time_box_todos (time_box_id);
+create index if not exists idx_time_box_todos_daily on public.time_box_todos (daily_todo_id);
+alter table public.time_box_todos enable row level security;
+create policy "own time_box_todos" on public.time_box_todos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+alter table public.time_boxes drop column if exists goals;

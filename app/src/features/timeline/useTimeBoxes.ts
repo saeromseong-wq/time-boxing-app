@@ -71,7 +71,7 @@ export function useTimeBoxes(startStr: string, endStr: string, refreshKey = 0) {
   )
 
   const update = useCallback(
-    async (id: string, patch: Partial<Pick<TimeBox, 'start_min' | 'end_min' | 'goals'>>) => {
+    async (id: string, patch: Partial<Pick<TimeBox, 'start_min' | 'end_min'>>) => {
       setBoxes((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)))
       const { error } = await supabase.from('time_boxes').update(patch).eq('id', id)
       if (error) await refresh()

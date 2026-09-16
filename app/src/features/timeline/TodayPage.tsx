@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { addDays, nowMin, toDateStr, todayStr, weekStart } from '../../lib/time'
 import { useTasks } from '../tasks/useTasks'
 import { useTimeBoxes } from './useTimeBoxes'
+import { useTodos } from './useTodos'
 import { useFocus } from '../timer/FocusContext'
 import Timeline from './Timeline'
 import WeekTimeline from './WeekTimeline'
 import TaskPicker from '../tasks/TaskPicker'
 import TimeBoxModal from './TimeBoxModal'
+import DailyTodoList from './DailyTodoList'
+import CompletedTodayList from './CompletedTodayList'
 import type { Task, TimeBoxWithTask } from '../../types'
 
 type ViewMode = 'day' | 'week'
@@ -36,6 +39,22 @@ export default function TodayPage() {
   const rangeStart = viewMode === 'week' ? weekStartStr : date
   const rangeEnd = viewMode === 'week' ? weekEndStr : date
   const { boxes, focusedByBox, create, updateTimes, update, remove } = useTimeBoxes(rangeStart, rangeEnd, focus.version)
+
+  const dayBoxes = boxes.filter((b) => b.date === date)
+  const {
+    dailyTodos,
+    timeBoxTodos,
+    addDailyTodo,
+    toggleDailyTodo,
+    removeDailyTodo,
+    addTimeBoxTodo,
+    importDailyTodo,
+    toggleTimeBoxTodo,
+    removeTimeBoxTodo,
+  } = useTodos(
+    date,
+    dayBoxes.map((b) => b.id),
+  )
 
   /** 타임라인에서 지정한 범위 — TaskPicker가 열려 있는 동안 유지 */
   const [pendingRange, setPendingRange] = useState<{ date: string; start: number; end: number | null } | null>(null)
@@ -141,6 +160,15 @@ export default function TodayPage() {
         </div>
       )}
 
+      {viewMode === 'day' && (
+        <DailyTodoList
+          todos={dailyTodos}
+          onAdd={addDailyTodo}
+          onToggle={toggleDailyTodo}
+          onRemove={removeDailyTodo}
+        />
+      )}
+
       <p className="mb-2 text-xs text-neutral-400">빈 시간을 클릭하거나 드래그해서 타임박스를 만드세요</p>
 
       {viewMode === 'day' ? (
@@ -167,6 +195,12 @@ export default function TodayPage() {
         />
       )}
 
+      {viewMode === 'day' && (
+        <div className="mt-4">
+          <CompletedTodayList dailyTodos={dailyTodos} timeBoxTodos={timeBoxTodos} boxes={dayBoxes} />
+        </div>
+      )}
+
       {pendingRange && (
         <TaskPicker
           tasks={tasks}
@@ -181,6 +215,8 @@ export default function TodayPage() {
           box={selected}
           focusedSeconds={focusedByBox[selected.id] ?? 0}
           isActive={focus.active?.timeBox.id === selected.id}
+          todos={timeBoxTodos.filter((t) => t.time_box_id === selected.id)}
+          dailyTodos={dailyTodos}
           onStart={async () => {
             setSelected(null)
             await startFocus(selected)
@@ -189,7 +225,10 @@ export default function TodayPage() {
             update(selected.id, patch)
             setSelected(null)
           }}
-          onGoalsChange={(goals) => update(selected.id, { goals })}
+          onAddTodo={(text) => addTimeBoxTodo(selected.id, text)}
+          onToggleTodo={toggleTimeBoxTodo}
+          onRemoveTodo={removeTimeBoxTodo}
+          onImportTodo={(dailyTodo) => importDailyTodo(selected.id, dailyTodo)}
           onDelete={async () => {
             await remove(selected.id)
             setSelected(null)

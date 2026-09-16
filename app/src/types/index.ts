@@ -31,12 +31,26 @@ export interface Task {
   quick_start_order: number | null
 }
 
-export interface GoalItem {
+export interface DailyTodo {
+  id: string
+  date: string // YYYY-MM-DD
   text: string
   done: boolean
+  sort_order: number
+  created_at: string
 }
 
-export const MAX_GOALS = 10
+export interface TimeBoxTodo {
+  id: string
+  time_box_id: string
+  /** 데일리 할 일에서 가져온 항목이면 그 daily_todo id — 완료 여부는 이 필드가 가리키는
+   * DailyTodo.done을 그대로 따른다(연동), null이면 이 타임박스에서만 쓰는 독립 항목 */
+  daily_todo_id: string | null
+  text: string
+  done: boolean
+  sort_order: number
+  created_at: string
+}
 
 export interface TimeBox {
   id: string
@@ -45,7 +59,6 @@ export interface TimeBox {
   start_min: number // 자정 기준 분
   end_min: number
   created_at: string
-  goals: GoalItem[]
 }
 
 export interface TimeBoxWithTask extends TimeBox {

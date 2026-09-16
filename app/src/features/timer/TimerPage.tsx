@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useFocus } from './FocusContext'
 import { formatClock, formatDuration } from '../../lib/time'
-import GoalChecklist from '../timeline/GoalChecklist'
-import type { GoalItem } from '../../types'
+import { useTodos } from '../timeline/useTodos'
+import TimeBoxTodoList from '../timeline/TimeBoxTodoList'
 
 /** 비주얼 타이머: 남은 시간만큼 색이 찬 파이가 줄어듦 */
 function TimerPie({ fraction, color, overtime }: { fraction: number; color: string; overtime: boolean }) {
@@ -47,19 +47,17 @@ interface Summary {
 }
 
 export default function TimerPage() {
-  const { active, loading, focusedLive, pause, resume, stop, updateGoals } = useFocus()
+  const { active, loading, focusedLive, pause, resume, stop } = useFocus()
   const navigate = useNavigate()
   const [summary, setSummary] = useState<Summary | null>(null)
-  const [goals, setGoals] = useState<GoalItem[]>([])
-
-  useEffect(() => {
-    setGoals(active?.timeBox.goals ?? [])
-  }, [active?.timeBox.id])
-
-  function changeGoals(next: GoalItem[]) {
-    setGoals(next)
-    updateGoals(next)
-  }
+  const {
+    dailyTodos,
+    timeBoxTodos,
+    addTimeBoxTodo,
+    importDailyTodo,
+    toggleTimeBoxTodo,
+    removeTimeBoxTodo,
+  } = useTodos(active?.timeBox.date ?? '', active ? [active.timeBox.id] : [])
 
   if (summary) {
     const density = summary.plannedSec > 0 ? Math.round((summary.focusedSec / summary.plannedSec) * 100) : 0
@@ -172,7 +170,14 @@ export default function TimerPage() {
       </div>
 
       <div className="mt-6 w-full">
-        <GoalChecklist goals={goals} onChange={changeGoals} />
+        <TimeBoxTodoList
+          todos={timeBoxTodos}
+          dailyTodos={dailyTodos}
+          onAdd={(text) => addTimeBoxTodo(active.timeBox.id, text)}
+          onToggle={toggleTimeBoxTodo}
+          onRemove={removeTimeBoxTodo}
+          onImport={(dailyTodo) => importDailyTodo(active.timeBox.id, dailyTodo)}
+        />
       </div>
     </div>
   )

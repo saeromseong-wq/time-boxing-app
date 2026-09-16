@@ -1,18 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Modal from '../../components/Modal'
-import GoalChecklist from './GoalChecklist'
+import TimeBoxTodoList from './TimeBoxTodoList'
 import { endMinLabel, formatDuration, minToLabel, parseTimeInput, snapTo } from '../../lib/time'
 import { CATEGORY_LABEL } from '../../types'
-import type { GoalItem, TimeBox, TimeBoxWithTask } from '../../types'
+import type { DailyTodo, TimeBox, TimeBoxTodo, TimeBoxWithTask } from '../../types'
 
 interface Props {
   box: TimeBoxWithTask
   focusedSeconds: number
   isActive: boolean
+  todos: TimeBoxTodo[]
+  dailyTodos: DailyTodo[]
   onStart: () => void
   onSave: (patch: Partial<Pick<TimeBox, 'start_min' | 'end_min'>>) => void
-  onGoalsChange: (goals: GoalItem[]) => void
+  onAddTodo: (text: string) => void
+  onToggleTodo: (todo: TimeBoxTodo) => void
+  onRemoveTodo: (id: string) => void
+  onImportTodo: (dailyTodo: DailyTodo) => void
   onDelete: () => void
   onClose: () => void
 }
@@ -126,15 +131,19 @@ export default function TimeBoxModal({
   box,
   focusedSeconds,
   isActive,
+  todos,
+  dailyTodos,
   onStart,
   onSave,
-  onGoalsChange,
+  onAddTodo,
+  onToggleTodo,
+  onRemoveTodo,
+  onImportTodo,
   onDelete,
   onClose,
 }: Props) {
   const [start, setStart] = useState(box.start_min)
   const [end, setEnd] = useState(box.end_min)
-  const [goals, setGoals] = useState(box.goals ?? [])
   const changed = start !== box.start_min || end !== box.end_min
 
   return (
@@ -174,12 +183,13 @@ export default function TimeBoxModal({
       </div>
 
       <div className="mb-5">
-        <GoalChecklist
-          goals={goals}
-          onChange={(next) => {
-            setGoals(next)
-            onGoalsChange(next)
-          }}
+        <TimeBoxTodoList
+          todos={todos}
+          dailyTodos={dailyTodos}
+          onAdd={onAddTodo}
+          onToggle={onToggleTodo}
+          onRemove={onRemoveTodo}
+          onImport={onImportTodo}
         />
       </div>
 
