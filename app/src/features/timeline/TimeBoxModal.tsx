@@ -145,6 +145,9 @@ export default function TimeBoxModal({
   const [start, setStart] = useState(box.start_min)
   const [end, setEnd] = useState(box.end_min)
   const changed = start !== box.start_min || end !== box.end_min
+  // end_min은 자정을 넘으면 1440 이상이므로 날짜 0시에 분을 더해 실제 종료 시각을 구한다
+  const isPast = new Date(box.date + 'T00:00:00').getTime() + box.end_min * 60_000 < Date.now()
+  const canStart = !isPast || isActive
 
   return (
     <Modal title="타임박스" onClose={onClose}>
@@ -201,6 +204,7 @@ export default function TimeBoxModal({
           삭제
         </button>
         <div className="flex-1" />
+        {!canStart && !changed && <span className="text-xs text-neutral-400">이미 끝난 타임박스예요</span>}
         {changed && (
           <button
             onClick={() => onSave({ start_min: start, end_min: end })}
@@ -209,13 +213,15 @@ export default function TimeBoxModal({
             저장
           </button>
         )}
-        <button
-          onClick={onStart}
-          disabled={isActive}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
-        >
-          {isActive ? '몰입 진행 중' : '▶ 몰입 시작'}
-        </button>
+        {canStart && (
+          <button
+            onClick={onStart}
+            disabled={isActive}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+          >
+            {isActive ? '몰입 진행 중' : '▶ 몰입 시작'}
+          </button>
+        )}
       </div>
     </Modal>
   )

@@ -15,6 +15,10 @@ export function useTodos(date: string, timeBoxIds: string[]) {
   const idsKey = timeBoxIds.join(',')
 
   const refreshDaily = useCallback(async () => {
+    if (!date) {
+      setDailyTodos([])
+      return
+    }
     const { data } = await supabase
       .from('daily_todos')
       .select('*')
@@ -131,7 +135,12 @@ export function useTodos(date: string, timeBoxIds: string[]) {
     [refreshBoxTodos],
   )
 
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshDaily(), refreshBoxTodos()])
+  }, [refreshDaily, refreshBoxTodos])
+
   return {
+    refresh,
     dailyTodos,
     timeBoxTodos,
     addDailyTodo,

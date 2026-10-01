@@ -42,15 +42,12 @@ export default function TodayPage() {
 
   const dayBoxes = boxes.filter((b) => b.date === date)
   const {
+    refresh: refreshTodos,
     dailyTodos,
     timeBoxTodos,
     addDailyTodo,
     toggleDailyTodo,
     removeDailyTodo,
-    addTimeBoxTodo,
-    importDailyTodo,
-    toggleTimeBoxTodo,
-    removeTimeBoxTodo,
   } = useTodos(
     date,
     dayBoxes.map((b) => b.id),
@@ -59,6 +56,14 @@ export default function TodayPage() {
   /** 타임라인에서 지정한 범위 — TaskPicker가 열려 있는 동안 유지 */
   const [pendingRange, setPendingRange] = useState<{ date: string; start: number; end: number | null } | null>(null)
   const [selected, setSelected] = useState<TimeBoxWithTask | null>(null)
+
+  // 주간 뷰에선 선택한 박스가 date와 다른 날일 수 있으므로, 모달은 박스 자신의 날짜 기준으로 할 일을 따로 불러온다
+  const selectedTodos = useTodos(selected?.date ?? '', selected ? [selected.id] : [])
+
+  function closeModal() {
+    setSelected(null)
+    refreshTodos()
+  }
 
   /** 플로팅 버튼: 몰입할 태스크 선택 모달 열림 여부 */
   const [fabPicking, setFabPicking] = useState(false)
@@ -215,25 +220,25 @@ export default function TodayPage() {
           box={selected}
           focusedSeconds={focusedByBox[selected.id] ?? 0}
           isActive={focus.active?.timeBox.id === selected.id}
-          todos={timeBoxTodos.filter((t) => t.time_box_id === selected.id)}
-          dailyTodos={dailyTodos}
+          todos={selectedTodos.timeBoxTodos}
+          dailyTodos={selectedTodos.dailyTodos}
           onStart={async () => {
-            setSelected(null)
+            closeModal()
             await startFocus(selected)
           }}
           onSave={(patch) => {
             update(selected.id, patch)
-            setSelected(null)
+            closeModal()
           }}
-          onAddTodo={(text) => addTimeBoxTodo(selected.id, text)}
-          onToggleTodo={toggleTimeBoxTodo}
-          onRemoveTodo={removeTimeBoxTodo}
-          onImportTodo={(dailyTodo) => importDailyTodo(selected.id, dailyTodo)}
+          onAddTodo={(text) => selectedTodos.addTimeBoxTodo(selected.id, text)}
+          onToggleTodo={selectedTodos.toggleTimeBoxTodo}
+          onRemoveTodo={selectedTodos.removeTimeBoxTodo}
+          onImportTodo={(dailyTodo) => selectedTodos.importDailyTodo(selected.id, dailyTodo)}
           onDelete={async () => {
             await remove(selected.id)
-            setSelected(null)
+            closeModal()
           }}
-          onClose={() => setSelected(null)}
+          onClose={closeModal}
         />
       )}
 
